@@ -3,6 +3,7 @@ import styled from "styled-components";
 import "reset-css";
 import { Helmet, HelmetProvider } from "react-helmet-async";
 import { useForm, useFieldArray } from "react-hook-form";
+import { updateLanguageServiceSourceFile } from "typescript";
 const Container = styled.div`
   width: min-content;
   margin: 100px auto;
@@ -120,6 +121,7 @@ type FormValues = {
 
 interface IItem {
   name: string;
+  id: number;
   category: string;
 }
 function App() {
@@ -130,9 +132,9 @@ function App() {
   });
 
   const [categories, setCategories] = useState<string[]>();
-  const [items, setItems] = useState<IItem[]>();
+  const [items, setItems] = useState<IItem[]>([]);
 
-  const { fields, append, replace } = useFieldArray({
+  const { fields, append, replace, update } = useFieldArray({
     control,
     name: "item",
   });
@@ -149,13 +151,13 @@ function App() {
       });
       append({
         name: "",
+        id: Date.now(),
         category,
       });
     }
     resetField("category");
     return;
   };
-
   const onTask = (data: FormValues) => {
     const { item } = data;
     const filterBlank = item.filter((v) => v.name !== "");
@@ -167,7 +169,7 @@ function App() {
     });
 
     const replaceArray = categories?.map((v) => {
-      return { name: "", category: v };
+      return { name: "", category: v, id: Date.now() };
     });
     if (replaceArray) {
       replace(replaceArray);
@@ -175,6 +177,20 @@ function App() {
     return;
   };
 
+  const onClick = (event: React.FormEvent<HTMLButtonElement>) => {
+    const {
+      currentTarget: { id, innerText },
+    } = event;
+
+    const index = items.findIndex((v) => v.id.toString() === id);
+    const targetObj = items[index];
+    setItems((prev) => {
+      const front = prev.slice(0, index);
+      const back = prev.slice(index + 1);
+      const copyObj = { ...targetObj, category: innerText };
+      return [...front, copyObj, ...back];
+    });
+  };
   return (
     <HelmetProvider>
       <Container>
@@ -215,7 +231,9 @@ function App() {
         <div>
           <TodoList onSubmit={handleSubmit(onTask)}>
             {fields.map((field, index) => {
-              const list = items?.filter((v) => v.category === field.category);
+              const list = items?.filter(
+                (item) => item.category === field.category
+              );
               return (
                 <Fields key={field.id}>
                   <label>{field.category.toUpperCase()}</label>
@@ -241,9 +259,26 @@ function App() {
                     </Btn>
                   </InputWrapper>
                   <ItemWrapper>
-                    {list?.map((v, i) => (
-                      <Item key={i}>{v.name}</Item>
-                    ))}
+                    {list?.map((item, i) => {
+                      return (
+                        <Item key={item.id}>
+                          {item.name}
+                          {categories?.map((category) => {
+                            return (
+                              category !== field.category && (
+                                <button
+                                  key={category}
+                                  id={item.id + ""}
+                                  onClick={onClick}
+                                >
+                                  {category}
+                                </button>
+                              )
+                            );
+                          })}
+                        </Item>
+                      );
+                    })}
                   </ItemWrapper>
                 </Fields>
               );

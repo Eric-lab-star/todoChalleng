@@ -158,7 +158,7 @@ function App() {
     setCategories(DB_Categories);
     setItems(DB_Items);
     replace(DB_Fields);
-  }, []);
+  }, [replace, setItems, setCategories]);
 
   const onSubmit = (data: FormValues) => {
     const { category } = data;

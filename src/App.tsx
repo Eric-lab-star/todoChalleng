@@ -3,9 +3,11 @@ import styled from "styled-components";
 import "reset-css";
 import { Helmet, HelmetProvider } from "react-helmet-async";
 import { useForm, useFieldArray } from "react-hook-form";
-import { updateLanguageServiceSourceFile } from "typescript";
+import { useRecoilState } from "recoil";
+import { categoryState, IItem, itemsState } from "./atom";
 const Container = styled.div`
-  width: min-content;
+  width: 50vw;
+  min-width: 300px;
   margin: 100px auto;
   padding: 20px;
   border-radius: 10px;
@@ -25,8 +27,9 @@ const Title = styled.h1`
 
 const TodoList = styled.form`
   margin-top: 20px;
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, auto));
+  gap: 10px;
 `;
 
 const Fields = styled.div`
@@ -37,7 +40,7 @@ const Fields = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 300px;
+
   font-family: felt-tip-woman, sans-serif;
   font-size: 25px;
   font-weight: 600;
@@ -75,6 +78,14 @@ const Btn = styled.button`
   color: #0404a5;
 `;
 
+const ToggleBtn = styled.button`
+  border-radius: 3px;
+  border-style: none;
+  background-color: #0404a5;
+  color: white;
+  cursor: pointer;
+`;
+
 const ItemWrapper = styled.ul`
   margin-top: 10px;
   width: 70%;
@@ -82,13 +93,17 @@ const ItemWrapper = styled.ul`
 
 const Item = styled.li`
   margin: 10px;
+  padding: 3px;
   border-bottom: 1px dashed blue;
   overflow-x: scroll;
-  ::selection {
+  display: flex;
+  justify-content: space-between;
+  span::selection {
     background-color: #0404a5;
     color: white;
   }
 `;
+
 const CategoryForm = styled.form`
   display: flex;
   flex-direction: column;
@@ -119,22 +134,15 @@ type FormValues = {
   category: string;
 };
 
-interface IItem {
-  name: string;
-  id: number;
-  category: string;
-}
 function App() {
   const { register, handleSubmit, resetField, control } = useForm<FormValues>({
     defaultValues: {
       category: "",
     },
   });
-
-  const [categories, setCategories] = useState<string[]>();
-  const [items, setItems] = useState<IItem[]>([]);
-
-  const { fields, append, replace, update } = useFieldArray({
+  const [categories, setCategories] = useRecoilState(categoryState);
+  const [items, setItems] = useRecoilState(itemsState);
+  const { fields, append, replace } = useFieldArray({
     control,
     name: "item",
   });
@@ -177,10 +185,11 @@ function App() {
     return;
   };
 
-  const onClick = (event: React.FormEvent<HTMLButtonElement>) => {
+  const onChange = (event: React.FormEvent<HTMLButtonElement>) => {
     const {
       currentTarget: { id, innerText },
     } = event;
+    console.log(event.currentTarget.value);
 
     const index = items.findIndex((v) => v.id.toString() === id);
     const targetObj = items[index];
@@ -231,7 +240,7 @@ function App() {
         <div>
           <TodoList onSubmit={handleSubmit(onTask)}>
             {fields.map((field, index) => {
-              const list = items?.filter(
+              const list = items.filter(
                 (item) => item.category === field.category
               );
               return (
@@ -262,20 +271,22 @@ function App() {
                     {list?.map((item, i) => {
                       return (
                         <Item key={item.id}>
-                          {item.name}
-                          {categories?.map((category) => {
-                            return (
-                              category !== field.category && (
-                                <button
-                                  key={category}
-                                  id={item.id + ""}
-                                  onClick={onClick}
-                                >
-                                  {category}
-                                </button>
-                              )
-                            );
-                          })}
+                          <span>{item.name}</span>
+                          <div>
+                            {categories.map((category) => {
+                              return (
+                                category !== field.category && (
+                                  <ToggleBtn
+                                    onClick={onChange}
+                                    key={category}
+                                    id={item.id + ""}
+                                  >
+                                    {category}
+                                  </ToggleBtn>
+                                )
+                              );
+                            })}
+                          </div>
                         </Item>
                       );
                     })}

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect } from "react";
 import styled from "styled-components";
 import "reset-css";
 import { Helmet, HelmetProvider } from "react-helmet-async";
@@ -132,6 +132,7 @@ const InputWrapper = styled.div`
 type FormValues = {
   item: IItem[];
   category: string;
+  id?: number;
 };
 
 function App() {
@@ -146,23 +147,47 @@ function App() {
     control,
     name: "item",
   });
+  useEffect(() => {
+    const DB_Categories: string[] = JSON.parse(
+      localStorage.getItem("categories") || "[]"
+    );
+    const DB_Items: IItem[] = JSON.parse(localStorage.getItem("items") || "[]");
+    const DB_Fields: FormValues[] = JSON.parse(
+      localStorage.getItem("fields") || "[]"
+    );
+    setCategories(DB_Categories);
+    setItems(DB_Items);
+    replace(DB_Fields);
+  }, []);
+
   const onSubmit = (data: FormValues) => {
     const { category } = data;
-    const validation = categories?.find((v) => v === category);
+    const validation = categories.find((v) => v === category);
     if (!validation && category !== "") {
       setCategories((prev) => {
-        if (prev) {
-          return [...prev, category];
-        }
-
-        return [category];
+        localStorage.setItem("categories", JSON.stringify([...prev, category]));
+        return [...prev, category];
       });
+
       append({
         name: "",
         id: Date.now(),
         category,
       });
+      const prev = JSON.parse(localStorage.getItem("fields") || "[]");
+      localStorage.setItem(
+        "fields",
+        JSON.stringify([
+          ...prev,
+          {
+            name: "",
+            id: Date.now(),
+            category,
+          },
+        ])
+      );
     }
+
     resetField("category");
     return;
   };
@@ -170,18 +195,13 @@ function App() {
     const { item } = data;
     const filterBlank = item.filter((v) => v.name !== "");
     setItems((prev) => {
-      if (prev) {
-        return [...prev, ...filterBlank];
-      }
-      return [...filterBlank];
+      localStorage.setItem("items", JSON.stringify([...prev, ...filterBlank]));
+      return [...prev, ...filterBlank];
     });
-
-    const replaceArray = categories?.map((v) => {
+    const replaceArray = categories.map((v) => {
       return { name: "", category: v, id: Date.now() };
     });
-    if (replaceArray) {
-      replace(replaceArray);
-    }
+    replace(replaceArray);
     return;
   };
 
@@ -189,7 +209,6 @@ function App() {
     const {
       currentTarget: { id, innerText },
     } = event;
-    console.log(event.currentTarget.value);
 
     const index = items.findIndex((v) => v.id.toString() === id);
     const targetObj = items[index];
@@ -197,6 +216,10 @@ function App() {
       const front = prev.slice(0, index);
       const back = prev.slice(index + 1);
       const copyObj = { ...targetObj, category: innerText };
+      localStorage.setItem(
+        "items",
+        JSON.stringify([...front, copyObj, ...back])
+      );
       return [...front, copyObj, ...back];
     });
   };
